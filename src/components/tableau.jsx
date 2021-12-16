@@ -106,8 +106,7 @@ function bestNextSafeMoves(uniqSafeMoves, ia){
       }
       newBestMove = [...newBestMove, {firstColumn: move.c, firstRow: move.row, row, move: iaAlgorythm(newBoard)}]
     })
-    const movesPlayer1CanWin = uniq(newBestMove.filter(({move, firstRow}) => move.player1CanWin.length > 0 && move.player1CanWin.filter(({row}) => row === firstRow).length > 0).map((move) => move.firstColumn))
-    const movesPlayer2CanWin = uniq(newBestMove.filter(({move, firstRow}) => move.player2CanWin.length > 0 && move.player2CanWin.filter(({row}) => row === firstRow).length > 0).map((move) => move.firstColumn))
+    const movesPlayer1CanWin = uniq(newBestMove.filter(({move, firstRow, firstColumn}) => move.player1CanWin.length > 0 && move.player1CanWin.filter(({row, c}) => !(firstColumn === c)).length > 0).map((move) => move.firstColumn))
     const moveNotSafe1 = uniq(newBestMove.filter(({move, firstRow}) => move.player1CanWin.length > 0 && move.player1CanWin.filter(({row}) => row !== firstRow).length > 0).map((move) => move.firstColumn))
     const moveNotSafe2 = uniq(newBestMove.filter(({move, firstRow}) => move.player2CanWin.length > 0 && move.player2CanWin.filter(({row}) => row !== firstRow).length > 0).map((move) => move.firstColumn))
 
@@ -116,12 +115,10 @@ function bestNextSafeMoves(uniqSafeMoves, ia){
     const saferMoves1 = safe.filter((move) => !moveNotSafe1.includes(move))
     const saferMoves2 = safe.filter((move) => !moveNotSafe2.includes(move))
 
-
     if(ia === player1){
       if(saferMoves2.length > 0){
         safe = saferMoves2
       }
-      if(movesPlayer2CanWin.length > 0) return movesPlayer2CanWin[Math.floor(Math.random() * movesPlayer2CanWin.length)];
       if(movesPlayer1CanWin.length > 0) return movesPlayer1CanWin[Math.floor(Math.random() * movesPlayer1CanWin.length)];
       return safe[Math.floor(Math.random() * safe.length)];
     } else {
@@ -129,7 +126,6 @@ function bestNextSafeMoves(uniqSafeMoves, ia){
         safe = saferMoves1
       }
       if(movesPlayer1CanWin.length > 0) return movesPlayer1CanWin[Math.floor(Math.random() * movesPlayer1CanWin.length)];
-      if(movesPlayer2CanWin.length > 0) return movesPlayer2CanWin[Math.floor(Math.random() * movesPlayer2CanWin.length)];
       return safe[Math.floor(Math.random() * safe.length)];
     }
 }
