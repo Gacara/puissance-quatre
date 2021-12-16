@@ -1,5 +1,5 @@
-import React, {useState, useEffect} from "react";
-import { uniqBy, uniq, sortedLastIndex } from "lodash"
+import React, {useState} from "react";
+import { uniqBy, uniq } from "lodash"
 import Row from "./row"
 
 
