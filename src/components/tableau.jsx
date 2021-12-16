@@ -1,5 +1,7 @@
 import React, {useState, useEffect} from "react";
+import { uniqBy, uniq, sortedLastIndex } from "lodash"
 import Row from "./row"
+
 
 function initBoard(initPlayer) {
   let board = []
@@ -28,7 +30,6 @@ export default function Tableau(){
   }
   //iaAlgorythm(board)
   function iaAlgorythm(boardToCheck){
-    const ia = togglePlayer()
     let safe = []
     let player1CanWin = []
     let player2CanWin = []
@@ -41,6 +42,7 @@ export default function Tableau(){
         let row;
     // on modifie le board avec l'ajout d'une cellule
         for (let r = 5; r >= 0; r--) {
+
           newBoardToCheck[r] = [...boardToCheck[r]]
           if (!newBoardToCheck[r][c]) {
             newBoardToCheck[r][c] = numeroJoueur
@@ -50,34 +52,78 @@ export default function Tableau(){
         }
   
         let result = checkAll(newBoardToCheck);
-        console.log(result)
-        if(result === player1) player1CanWin = [...player1CanWin, c]
-        else if(result === player2) player2CanWin = [...player2CanWin, c]
+        if(result === player1) player1CanWin = [...player1CanWin, {c, row}]
+        else if(result === player2) player2CanWin = [...player2CanWin, {c, row}]
         else safe = [...safe, {c, row}] 
       }
     } 
 
-   const safeMoves = checkSafeMove(safe)
-   console.log(safeMoves)
-    if(ia === player1){
-      if(player1CanWin.length > 0) return player1CanWin[Math.floor(Math.random() * player1CanWin.length)];
-      if(player2CanWin.length > 0) return player2CanWin[Math.floor(Math.random() * player2CanWin.length)];
-      return safeMoves[Math.floor(Math.random() * safeMoves.length)].c;
-    } else {
-      if(player2CanWin.length > 0) return player2CanWin[Math.floor(Math.random() * player2CanWin.length)];
-      if(player1CanWin.length > 0) return player1CanWin[Math.floor(Math.random() * player1CanWin.length)];
-      return safeMoves[Math.floor(Math.random() * safeMoves.length)].c;
-    }
+  return {
+    player1CanWin,
+    player2CanWin,
+    safe,
+  }
   }
 
-  function checkSafeMove(safe){
-    const playCenter = safe.filter((move) => move.c >= 2 && move.c < 5 && move.row === 5)
+function prioriseMoves(allMoves){
+  const ia = togglePlayer()
 
+  let safeMoves = checkSafeMove(allMoves.safe)
+  const bestSafeMove = bestNextSafeMoves(safeMoves, ia)
+
+  if(ia === player1){
+    if(allMoves.player1CanWin.length > 0) return allMoves.player1CanWin[Math.floor(Math.random() * allMoves.player1CanWin.length)].c;
+    if(allMoves.player2CanWin.length > 0) return allMoves.player2CanWin[Math.floor(Math.random() * allMoves.player2CanWin.length)].c;
+    return bestSafeMove;
+  } else {
+    if(allMoves.player2CanWin.length > 0) return allMoves.player2CanWin[Math.floor(Math.random() * allMoves.player2CanWin.length)].c;
+    if(allMoves.player1CanWin.length > 0) return allMoves.player1CanWin[Math.floor(Math.random() * allMoves.player1CanWin.length)].c;
+    return bestSafeMove;
+  }
+}
+
+  function checkSafeMove(safe){
+    const uniqSafeMoves = uniqBy(safe, "c")
+    const playCenter = uniqSafeMoves.filter((move) => move.c >= 2 && move.c < 5 && move.row === 5)
     if (playCenter.length >= 1){
       return playCenter
     }
     return safe
   }
+
+function bestNextSafeMoves(uniqSafeMoves, ia){
+  let newBestMove= []
+  uniqSafeMoves.forEach((move) => {
+    let newBoard = [...board]
+    let row;
+      for (let r = 5; r >= 0; r--) {
+        newBoard[r] = [...board[r]]
+        if (!newBoard[r][move.c]) {
+          newBoard[r][move.c] = currentPlayer
+          row = r
+          break;
+        }
+      }
+      newBestMove = [...newBestMove, {firstColumn: move.c, firstRow: move.row, row, move: iaAlgorythm(newBoard)}]
+    })
+    const movesPlayer1CanWin = uniq(newBestMove.filter(({move, firstRow}) => move.player1CanWin.length > 0 && move.player1CanWin.filter(({row}) => row === firstRow).length > 0).map((move) => move.firstColumn))
+    const movesPlayer2CanWin = uniq(newBestMove.filter(({move, firstRow}) => move.player2CanWin.length > 0 && move.player2CanWin.filter(({row}) => row === firstRow).length > 0).map((move) => move.firstColumn))
+    const moveNotSafe = uniq(newBestMove.filter(({move, firstRow}) => move.player1CanWin.length > 0 && move.player1CanWin.filter(({row}) => row !== firstRow).length > 0).map((move) => move.firstColumn))
+    let safe = uniq(newBestMove.map((move) => move.firstColumn))
+    const saferMoves = safe.filter((move) => !moveNotSafe.includes(move))
+    if(saferMoves.length > 0){
+      safe = saferMoves
+    }
+    if(ia === player1){
+      if(movesPlayer1CanWin.length > 0) return movesPlayer1CanWin[Math.floor(Math.random() * movesPlayer1CanWin.length)];
+      if(movesPlayer2CanWin.length > 0) return movesPlayer2CanWin[Math.floor(Math.random() * movesPlayer2CanWin.length)];
+      return safe[Math.floor(Math.random() * safe.length)];
+    } else {
+      if(movesPlayer1CanWin.length > 0) return movesPlayer1CanWin[Math.floor(Math.random() * movesPlayer1CanWin.length)];
+      if(movesPlayer2CanWin.length > 0) return movesPlayer2CanWin[Math.floor(Math.random() * movesPlayer2CanWin.length)];
+      return safe[Math.floor(Math.random() * safe.length)];
+    }
+}
 
   function checkResult(newBoard){
     let result = checkAll(newBoard);
@@ -93,7 +139,7 @@ export default function Tableau(){
   }
 
   function checkIaVictory(newBoard){
-    const newIaMove = iaAlgorythm(newBoard)
+    const newIaMove = prioriseMoves(iaAlgorythm(newBoard))
           for (let r = 5; r >= 0; r--) {
             if (!newBoard[r][newIaMove]) {
               newBoard[r][newIaMove] = togglePlayer();
